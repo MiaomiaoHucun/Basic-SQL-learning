@@ -1,0 +1,137 @@
+USE Websites;
+
+CREATE PROCEDURE spWebsitesByCategory 
+(@Category NVARCHAR(30))
+AS 
+BEGIN
+
+SELECT W.WebsiteName, C.CategoryName FROM tblWebsite W
+INNER JOIN tblCategory C ON C.CategoryId = W.CategoryId 
+WHERE C.CategoryName = @Category 
+
+END;
+
+EXEC spWebsitesByCategory 'Search engine';
+
+use Training;
+--Multiple Null-for-all Parameters, first parameter or two parameters together can show all when null
+Alter PROCEDURE spListDelegates 
+(	@company NVARCHAR(50) = NULL,
+	@course NVARCHAR(50) = NULL
+)
+AS
+BEGIN
+
+SELECT DISTINCT P.FirstName + ' ' + P.LastName AS Names, O.OrgName  FROM tblPerson P
+INNER JOIN tblOrg O ON O.OrgId = P.OrgId 
+INNER JOIN tblDelegate D ON D.PersonId = P.Personid 
+INNER JOIN tblSchedule S ON S.ScheduleId = D.ScheduleId 
+INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+WHERE C.CourseName = ISNULL(@course, C.CourseName)
+AND O.OrgName = ISNULL(@company, O.OrgName)
+
+END;
+
+EXEC spListDelegates 'BP';
+EXEC spListDelegates;
+
+SELECT TOP 10 * FROM tblCourse;
+SELECT TOP 10 * FROM tblOrg;
+
+use DoctorWho;
+
+
+ALTER PROCEDURE spListEpisodes
+(@SeriesNo INT = NULL)
+AS
+BEGIN
+	SELECT Title, SeriesNumber FROM tblEpisode
+	WHERE SeriesNumber = ISNULL(@SeriesNo, SeriesNumber)
+END; 
+
+EXEC spListEpisodes;
+
+--find names regardless of case and length and null for all value
+ALTER PROCEDURE spCompanionsForDoctor
+(@DoctorNamePart NVARCHAR(30) = NULL)
+AS
+BEGIN
+	SELECT DISTINCT D.DoctorName, C.CompanionName FROM tblDoctor D
+	INNER JOIN tblEpisode E ON E.DoctorId = D.DoctorId 
+	INNER JOIN tblEpisodeCompanion EC ON EC.EpisodeId = E.EpisodeId 
+	INNER JOIN tblCompanion C ON C.CompanionId = EC.CompanionId 
+	WHERE LOWER(D.DoctorName) LIKE LOWER('%' + ISNULL(@DoctorNamePart, D.DoctorName) + '%')
+END;
+	
+EXEC spCompanionsForDoctor;
+EXEC spCompanionsForDoctor 'eCC';
+EXEC spCompanionsForDoctor 'MAT';
+
+
+use websites;
+
+ALTER PROCEDURE spSchedules
+(
+@date1 DATETIME = NULL,
+@date2 DATETIME = NULL
+)
+AS
+BEGIN 
+	SELECT WebsiteName, DateOnline FROM tblWebsite
+	WHERE DateOnline BETWEEN ISNULL(@date1, '01/01/1990') AND ISNULL(@date2, '12/31/1999')
+	ORDER BY DateOnline DESC
+END; 
+
+EXEC spSchedules;
+EXEC spSchedules '01/01/2000', '12/31/2000';
+EXEC spSchedules '01/01/1997';
+
+use Training;
+
+SELECT * FROM tblResource;
+SELECT * FROM tblSchedule;
+
+--Output parameter AND to find a substring in a string
+ALTER PROCEDURE spResourceCourseCount 
+@Resource NVARCHAR(50),
+@CourseCount INT OUTPUT
+AS
+	DECLARE @ResourceId INT;
+
+	SELECT @ResourceId = ResourceID FROM tblResource 
+	WHERE ResourceName = @Resource;
+
+	SELECT @CourseCount = COUNT(CourseId) FROM tblSchedule 
+	WHERE CHARINDEX(CAST(@ResourceId AS nvarchar(50)) + ',', ResourceIds+',') > 0 ; 
+RETURN;
+
+DECLARE @GetNumber INT;
+EXEC spResourceCourseCount 'Flip chart', @CourseCount = @GetNumber OUTPUT;
+
+IF @GetNumber = 0
+PRINT  'This resource dosen''t exisit.'
+ELSE 
+PRINT Cast(@GetNumber AS NVARCHAR(10)) + ' course(s) using this resource.';
+
+
+USE DoctorWho;
+
+ALTER PROCEDURE spGoodAndBad
+@SeriesNo int,
+@CountCom int OUTPUT,
+@CountEnemy int OUTPUT
+
+AS 
+	SELECT @CountEnemy = COUNT(DISTINCT EE.EnemyId), @CountCom = COUNT(DISTINCT EC.CompanionId) FROM tblEpisode E
+	INNER JOIN tblEpisodeCompanion EC ON EC.EpisodeId = E.EpisodeId 
+	INNER JOIN tblEpisodeEnemy EE ON EE.EpisodeId = E.EpisodeId 
+	WHERE E.SeriesNumber = @SeriesNo;
+
+
+DECLARE @NumCom int;
+DECLARE @NumEnemy int;
+DECLARE @SeriesNo1 int = 1;
+EXEC spGoodAndBad @SeriesNo1, @NumCom OUTPUT, @NumEnemy OUTPUT;
+SELECT @SeriesNo1 as SerNo, @NumCom as ComNo, @NumEnemy AS EnemyNo; 
+
+
