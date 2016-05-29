@@ -1,0 +1,17 @@
+USE DoctorWho;
+
+SELECT OBJECT_ID('tempdb.dbo.#Characters','U');
+
+
+SELECT * INTO #Character FROM(
+SELECT CompanionID AS CharacterID, CompanionName AS CharacterName, 'Companion' AS CharacterType FROM tblCompanion 
+UNION 
+SELECT DoctorID AS CharacterID, DoctorName AS CharacterName, 'Doctor' AS CharacterType FROM tblDoctor 
+UNION
+SELECT EnemyID AS CharacterID, EnemyName AS CharacterName, 'Enemy' AS CharacterType FROM tblEnemy) AS C; 
+
+SELECT * FROM #Character; 
+
+INSERT INTO #Character (CharacterID, CharacterName, CharacterType)
+SELECT AuthorID, AuthorName, 'Author' FROM tblAuthor;
+
