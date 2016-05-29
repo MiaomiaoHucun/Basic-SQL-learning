@@ -1,0 +1,19 @@
+SELECT FilmName FROM tblFilm F
+INNER JOIN tblDirector D ON F.FilmDirectorID = D.DirectorID 
+WHERE D.DirectorDOB < (
+	SELECT MIN(ActorDOB) FROM tblActor
+	);
+
+SELECT * FROM tblActor;
+
+-- Derived table is a subquery in the FROM clause, must have an alias.
+
+SELECT DISTINCT FilmName FROM tblFilm F
+INNER JOIN tblCast C ON C.CastFilmID = F.FilmID 
+INNER JOIN tblActor A ON A.ActorID = C.CastActorID 
+WHERE A.ActorID IN (
+	SELECT ActorID FROM	(	
+						
+	SELECT DISTINCT TOP 3 ActorID, ActorDOB FROM tblActor 
+	ORDER BY ActorDOB DESC ) AS temp
+					) ;
