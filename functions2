@@ -1,0 +1,65 @@
+USE Training;
+GO
+
+CREATE FUNCTION fnEndDate
+(
+@StartDate DATETIME,
+@NumDays int
+) 
+RETURNS DATETIME
+WITH SCHEMABINDING 
+AS
+	BEGIN
+	DECLARE @EndDate DATETIME
+	SELECT @EndDate = DATEADD(day, @NumDays, @StartDate)
+	RETURN @EndDate
+	END
+;
+
+SELECT C.CourseName, S.StartDate, dbo.fnEndDate(S.StartDate, C.NumberDays) AS EndDate FROM tblCourse C
+INNER JOIN tblSchedule S ON S.CourseId = C.CourseId 
+WHERE YEAR(S.StartDate) = 2011 AND MONTH(S.StartDate) = 1 AND YEAR(dbo.fnEndDate(S.StartDate, C.NumberDays)) = 2011;
+
+
+USE DoctorWho;
+
+SELECT * FROM tblEpisode; 
+
+ALTER FUNCTION fnEpisodeDescription 
+( @Title nvarchar(100))
+RETURNS nvarchar(50)
+WITH SCHEMABINDING
+AS 
+	BEGIN
+	DECLARE @Type nvarchar(20)
+	SELECT @Type = CASE 
+		WHEN @Title LIKE '%Part 1%' THEN 'First Part'
+		WHEN @Title LIKE '%Part 2%' THEN 'Sencond Part'
+		ELSE 'Single Episode'
+		END
+		RETURN @Type
+	END;
+
+SELECT 
+	dbo.fnEpisodeDescription(Title) AS 'Episode Type',
+	COUNT(*) AS 'Number of episodes'
+FROM 
+	tblEpisode 
+GROUP BY dbo.fnEpisodeDescription(Title);
+
+
+USE Training;
+
+ALTER FUNCTION fnCountIds
+(@Ids nvarchar(50))
+RETURNS int
+WITH SCHEMABINDING
+AS
+	BEGIN
+	DECLARE @CountID int;
+	SELECT @CountID = LEN(@Ids) - LEN(REPLACE(@Ids, ',', '')) + 1;
+	RETURN @CountID;
+	END
+;
+
+SELECT ResourceIds, dbo.fnCountIds(ResourceIds), TrainerIds, dbo.fnCountIds(TrainerIds) AS REIDcounts FROM tblSchedule;
