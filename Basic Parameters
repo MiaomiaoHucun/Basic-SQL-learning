@@ -1,0 +1,66 @@
+USE DoctorWho;
+
+CREATE PROCEDURE spCalculateAge
+(@Birth DATETIME)
+AS 
+BEGIN
+DECLARE @Age INT
+SELECT @Age = DATEDIFF(YEAR, @Birth, GETDATE()) 
+PRINT 
+'If born on ' + CONVERT(NVARCHAR(20), @Birth, 106) + ', your age is ' + CONVERT(NVARCHAR(3), @Age) + '.'
+END;
+
+EXEC spCalculateAge '06/24/1985';
+
+--COUNT DISTINCT
+
+ALTER PROCEDURE spCounts 
+(@EpisodeID INT = 54)
+AS 
+SET NOCOUNT ON
+BEGIN
+SELECT E.Title, E.EpisodeId, 
+COUNT(DISTINCT EY.EnemyId) AS [Number of Enemies],
+COUNT(DISTINCT C.CompanionId) AS [Number of Companies]
+FROM tblEpisode E
+INNER JOIN tblEpisodeCompanion EC ON EC.EpisodeId = E.EpisodeId 
+INNER JOIN tblCompanion C ON C.CompanionId = EC.CompanionId 
+INNER JOIN tblEpisodeEnemy EE ON EE.EpisodeId = E.EpisodeId 
+INNER JOIN tblEnemy EY ON EY.EnemyId = EE.EnemyId 
+WHERE E.EpisodeId = @EpisodeID
+GROUP BY E.Title, E.EpisodeId
+END;
+
+EXEC spCounts;
+EXEC spCounts 23;
+
+--Concatenate Rows, strange but working
+ALTER PROCEDURE spConcatenateRows 
+(@EpisodeId2 INT=15,
+@EnemyList NVARCHAR(255) = '') 
+AS
+BEGIN
+SELECT @EnemyList = @EnemyList + ', ' + E.EnemyName 
+FROM tblEnemy E
+INNER JOIN tblEpisodeEnemy EE ON EE.EnemyId = E.EnemyID
+WHERE EE.EpisodeId = @EpisodeId2
+
+SELECT @EpisodeId2 AS 'EpisodeID', RIGHT(@EnemyList,LEN(@EnemyList)-1) AS 'Enemies'
+END
+
+EXEC spConcatenateRows;
+EXEC spConcatenateRows 18;
+
+
+
+
+--Local Variables, have to be excuted in one batch.
+DECLARE @EpisodeId3 INT=15;
+SELECT E.EnemyName 
+FROM tblEnemy E
+INNER JOIN tblEpisodeEnemy EE ON EE.EnemyId = E.EnemyID
+WHERE EE.EpisodeId = @EpisodeId3;
+
+--SET NOCOUNT ON
+SELECT * FROM tblEpisode;
+
