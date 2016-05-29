@@ -1,0 +1,31 @@
+/****** Script for SelectTopNRows command from SSMS  ******/
+SELECT TOP 1000 [WebsiteId]
+      ,[AlexaRankWorld]
+      ,[AlexaRankUk]
+      ,[WebsiteName]
+      ,[CompanyId]
+      ,[WebsiteUrl]
+      ,[NumberLinks]
+      ,[DateOnline]
+      ,[DomainId]
+      ,[CategoryId]
+  FROM [Websites].[dbo].[tblWebsite]
+
+  USE Websites;
+  DECLARE @Count INT = 0;
+  DECLARE @NumDomain INT;
+
+  WHILE @Count <25
+	BEGIN 
+		SELECT @NumDomain = COUNT(*) FROM tblWebsite 
+		WHERE DomainId = @Count 
+	SET @Count = @Count + 1
+	
+	IF @NumDomain >0
+	BEGIN
+	PRINT 
+	'The number of websites for DomainID ' + CAST(@Count AS NVARCHAR(3)) + ' is ' + CAST(@NumDomain AS NVARCHAR(3))
+	END
+	END;
+PRINT 'Looping finishes.'
+
