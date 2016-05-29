@@ -1,0 +1,27 @@
+use Websites;
+
+ALTER PROCEDURE spGooglySites
+@DetailLev int = 1
+AS
+
+IF
+	@DetailLev = 1
+	SELECT WebsiteName FROM tblWebsite
+	WHERE LOWER(WebsiteName) LIKE '%google%';
+
+ IF
+	@DetailLev = 2
+	SELECT WebsiteName, WebsiteUrl FROM tblWebsite
+	WHERE LOWER(WebsiteName) LIKE '%google%';  
+
+ IF
+	@DetailLev = 3
+	SELECT WebsiteName, WebsiteUrl, AlexaRankWorld FROM tblWebsite
+	WHERE LOWER(WebsiteName) LIKE '%google%'; 
+
+ELSE 
+	PRINT 'Only Available at 1, 2, 3 levels.';
+
+EXEC spGooglySites 4;
+EXEC spGooglySites;
+EXEC spGooglySites 3;
