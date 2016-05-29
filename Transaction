@@ -1,0 +1,111 @@
+use DoctorWho;
+
+INSERT INTO tblDoctor (
+DoctorName,
+DoctorNumber 
+) VALUES (
+'Shaun the Sheep',
+13
+);
+
+SELECT * FROM tblDoctor 
+WHERE DoctorNumber = 13;
+
+BEGIN TRAN
+INSERT INTO tblDoctor (
+DoctorName,
+DoctorNumber 
+) VALUES (
+'Shaun the Sheep',
+13
+);
+ROLLBACK TRAN
+
+BEGIN TRAN
+DELETE FROM tblDoctor
+WHERE DoctorNumber = 13;
+
+ROLLBACK TRAN
+COMMIT TRAN
+
+SELECT * FROM tblDoctor 
+WHERE DoctorNumber = 13;
+
+USE Websites;
+
+BEGIN TRAN
+DELETE FROM Data_at_14_Jan_2010 
+WHERE Category IN ('Betting', 'Adult');
+SELECT * FROM Data_at_14_Jan_2010 
+ROLLBACK TRAN
+SELECT * FROM Data_at_14_Jan_2010 
+
+
+USE DoctorWho;
+
+DECLARE @RowAffected int = 1;
+SELECT * FROM tblDoctor;
+SET @RowAffected = @@ROWCOUNT;
+SELECT @RowAffected AS ROWnum;
+
+ALTER TABLE tblEpisode
+ADD NumberEnemies int;
+
+SELECT * FROM tblEpisode;
+
+BEGIN TRANSACTION;
+DECLARE @RowCount int;
+
+UPDATE tblEpisode 
+SET NumberEnemies = (
+	SELECT COUNT(*) FROM tblEpisodeEnemy EE
+	WHERE  E.EpisodeId = EE.EpisodeId )
+	FROM tblEpisode E;
+
+SET @RowCount = @@ROWCOUNT;
+
+IF @RowCount > 120
+	BEGIN
+	PRINT CAST(@RowCount AS NVARCHAR(4)) + ' rows updated, but change rolled back.';
+	ROLLBACK TRAN;
+	END
+ELSE 
+	SELECT EpisodeId, Title, NumberEnemies FROM tblEpisode;  
+
+	
+
+
+USE Training2;
+
+ALTER TABLE tblPerson
+ADD Importance INT;
+
+SELECT * FROM tblPerson;
+SELECT * FROM tblDelegate;
+
+BEGIN TRAN
+
+--To fill in data in a new column, SET has the same function and position as SELECT
+UPDATE tblPerson
+SET Importance = (SELECT CASE 
+						WHEN COUNT(D.DelegateID) <= 1 THEN 10
+						WHEN COUNT(D.DelegateID) <= 4 THEN 20
+						ELSE 30 
+						END
+					FROM tblDelegate D
+					WHERE D.PersonId = P.Personid 
+					) FROM tblPerson P;
+
+SELECT * FROM tblPerson;
+
+DELETE FROM tblPerson
+WHERE Importance = 10;
+
+PRINT CAST(@@ROWCOUNT AS NVARCHAR(10)) + ' unimportant people deleted.';
+
+IF (SELECT COUNT(*) FROM tblPerson) > 500
+	COMMIT TRAN
+ELSE 
+	ROLLBACK TRAN;
+
+
