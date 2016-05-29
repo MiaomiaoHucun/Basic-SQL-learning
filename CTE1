@@ -1,0 +1,130 @@
+USE DoctorWho;
+--MP
+SELECT * FROM tblAuthor
+WHERE AuthorName like '%mp%';
+
+WITH NameForYou AS(
+SELECT EpisodeId FROM tblEpisode E
+INNER JOIN tblAuthor A ON A.AuthorId= E.AuthorID
+WHERE AuthorName like '%mp%')
+
+SELECT DISTINCT C.CompanionName FROM tblCompanion C
+INNER JOIN tblEpisodeCompanion EC ON EC.CompanionId = C.CompanionId 
+WHERE EC.EpisodeId IN (SELECT * FROM NameForYou); 
+
+USE Training2;
+
+--Important people courses
+
+WITH CTE AS(
+SELECT P.Personid FROM tblPerson P
+INNER JOIN tblDelegate D on D.PersonId = P.Personid 
+GROUP BY P.Personid 
+HAVING COUNT(D.ScheduleId) >= 6
+)
+
+SELECT DISTINCT C.CourseName, D.DelegateId, D.PersonId FROM tblCourse C
+inner join tblSchedule S ON C.CourseId = S.CourseId 
+INNER JOIN tblDelegate D ON D.ScheduleId = S.ScheduleId 
+INNER JOIN CTE ON CTE.Personid = D.PersonId;
+
+USE Movies;
+--Spielberg
+USE DoctorWho;
+
+WITH CTE AS(
+SELECT E.EpisodeId FROM tblEpisode E
+INNER JOIN tblDoctor D on D.DoctorId = E.DoctorId 
+INNER JOIN tblEpisodeCompanion EC on EC.EpisodeId = E.EpisodeId 
+INNER JOIN tblCompanion C on C.CompanionId = EC.CompanionId 
+WHERE D.DoctorName <> 'David Tennant'
+	AND C.CompanionName = 'Rose Tyler')
+
+SELECT DISTINCT E.EnemyName FROM tblEnemy E
+INNER JOIN tblEpisodeEnemy EE ON EE.EnemyId = E.EnemyId 
+INNER JOIN CTE ON CTE.EpisodeId = EE.EpisodeId;
+
+USE Websites;
+--Country Propotions
+Alter PROCEDURE spCompareCountries (@Country1 nvarchar(50), @Country2 nvarchar(50))
+AS
+	BEGIN
+WITH COUNTRY1 AS(
+SELECT W.WebsiteId, w.WebsiteName, U.Proportion AS Country1Propotion FROM tblWebsite W
+INNER JOIN tblUsage U ON U.WebsiteId = W.WebsiteId 
+INNER JOIN tblCountry C ON C.CountryId = U.CountryId 
+WHERE C.CountryName = @Country1),
+
+COUNTRY2 AS (
+SELECT W.WebsiteId, w.WebsiteName, U.Proportion AS Country2Propotion FROM tblWebsite W
+INNER JOIN tblUsage U ON U.WebsiteId = W.WebsiteId 
+INNER JOIN tblCountry C ON C.CountryId = U.CountryId 
+WHERE C.CountryName = @Country2)
+
+SELECT C1.WebsiteId, C1.WebsiteName, Country2Propotion AS FirstCountryPro, Country2Propotion AS SecondCountryPro, 
+Country2Propotion + Country2Propotion as Total  FROM COUNTRY1 C1
+INNER JOIN COUNTRY2 C2 ON C1.WebsiteId = C2.WebsiteId 
+
+	END;
+	
+EXEC spCompareCountries 'France', 'Greece';
+
+end;
+
+use Carnival;
+SELECT * FROM tblMenu;
+--Recursion with table variable
+DECLARE @Bread TABLE (MenuId int, MenuName nvarchar (100), Breadcrumb nvarchar(250));
+DECLARE @MenuNo INT = 1;
+DECLARE @ParentNo INT = NULL;
+DECLARE @MenuParent nvarchar(100) = null;
+DECLARE @MenuName nvarchar(100) = null;
+DECLARE @MenuChild nvarchar(100) = null
+DECLARE @Breadcrumb nvarchar(250);
+
+WHILE @MenuNo <= 25
+	BEGIN
+	SELECT @MenuNAME = MenuName, 
+	@ParentNo = ParentMenuId
+	FROM tblMenu 	WHERE MenuId = @MenuNo
+	
+	SELECT @MenuParent = CASE WHEN @ParentNo IS NOT NULL then '> Home page'
+											ELSE NULL END
+	SELECT @MenuChild = CASE WHEN @ParentNo > 1 then '>' + MenuName
+											ELSE NULL END
+								FROM tblMenu WHERE MenuId = @ParentNo 	
+	SELECT @Breadcrumb = 'Top ' + ISNULL(@MenuParent, '') + ISNULL(@MenuChild, '') 
+	INSERT INTO @Bread VALUES (@MenuNo, @MenuName, @Breadcrumb)	
+	SET @MenuNo = @MenuNo + 1
+	END
+SELECT * FROM @Bread;
+
+--recursion with CTE
+WITH Breadcrub (MenuId, MenuName, ParentMenuId, Bread) as (
+SELECT MenuId, MenuName, ParentMenuId, CAST('Top' AS nvarchar(200)) as Bread FROM tblMenu
+WHERE ParentMenuId IS NULL
+--Anchor level
+UNION ALL
+--Recursive level
+SELECT C.MenuId, C.MenuName, C.ParentMenuId, CAST(P.Bread + '>' + P.MenuName AS nvarchar(200)) AS Bread FROM tblMenu C
+INNER JOIN Breadcrub P ON P.MenuId = C.ParentMenuId    
+)
+SELECT * FROM Breadcrub
+ORDER BY MenuID;
+
+
+use DoctorWho;
+
+SELECT * FROM tblDoctor;
+
+WITH NonDavid as (
+SELECT E.EpisodeId, EE.EnemyId, E.Title FROM tblEpisode E
+INNER JOIN tblDoctor D on D.DoctorId =  E.DoctorId 
+INNER JOIN tblEpisodeEnemy EE ON EE.EpisodeId = E.EpisodeId 
+WHERE D.DoctorName <> 'David Tennant')
+
+SELECT distinct E1.EpisodeId, E1.Title FROM tblEpisode E1
+INNER JOIN tblDoctor D1 ON D1.DoctorId = E1.DoctorId 
+INNER JOIN tblEpisodeEnemy EE1 ON EE1.EpisodeId = E1.EpisodeId 
+WHERE D1.DoctorName = 'David Tennant'
+AND EE1.EnemyId NOT IN (SELECT EnemyID FROM NonDavid);
