@@ -1,0 +1,154 @@
+use Training2;
+
+SELECT * FROM tblOrg;
+SELECT * FROM tblSector;
+
+SELECT OrgID, OrgName INTO #Org
+FROM tblOrg O INNER JOIN tblSector S ON S.SectorId = O.SectorId 
+WHERE S.SectorName = 'Retail';
+
+SELECT * FROM #Org;
+
+INSERT INTO #Org
+Select O.OrgID, O.OrgName FROM tblOrg O 
+INNER JOIN tblPerson P ON P.OrgId = O.OrgId
+GROUP BY O.OrgId, O.OrgName 
+HAVING COUNT(p.Personid) > 12;  
+
+--Table varibles MUST executate from Declaration (Local variable)
+
+Declare @TechieCourses TABLE (ScheduleID INT);
+
+INSERT INTO @TechieCourses 
+SELECT S.ScheduleID FROM tblSchedule S
+INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+WHERE C.CourseName LIKE '%C#%';
+
+INSERT INTO @TechieCourses
+SELECT ScheduleId FROM tblSchedule
+WHERE TrainerIds LIKE '%2936%';
+
+SELECT S.ScheduleId, S.StartDate, C.CourseName, S.TrainerIds FROM tblSchedule S
+INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+WHERE S.ScheduleId IN (SELECT * FROM @TechieCourses);
+
+
+
+USE DoctorWho;
+
+SELECT E.EpisodeId, E.Title, E.SeriesNumber, E.EpisodeNumber, A.AuthorName AS Why INTO #GoodEpisodes FROM tblEpisode E
+INNER JOIN tblAuthor A ON A.AuthorId = E.AuthorId 
+Where A.AuthorName = 'Steven Moffat';
+
+SELECT * FROM #GoodEpisodes;
+
+INSERT INTO #GoodEpisodes 
+SELECT E.EpisodeId, E.Title, E.SeriesNumber, E.EpisodeNumber, C.CompanionName AS Why FROM tblEpisode E
+INNER JOIN tblEpisodeCompanion EC ON EC.EpisodeId = E.EpisodeId 
+INNER JOIN tblCompanion C ON C.CompanionId = EC.CompanionId 
+WHERE C.CompanionName = 'Amy Pond';
+
+SELECT Title, count(why) AS 'Number of mentions' from #GoodEpisodes 
+GROUP BY Title
+HAVING COUNT(WHY) = 2
+ORDER BY TITLE; 
+
+
+USE Movies;
+
+SELECT * INTO #FlowerChild FROM (
+SELECT ActorName AS FlowerChildName, 'Actor' as Profession, ActorDOB as Dob FROM tblActor
+WHERE YEAR(ActorDOB) = 1969
+UNION ALL 
+SELECT DirectorName AS FlowerChildName, 'Director' as Profession, DirectorDOB as Dob FROM tblDirector 
+WHERE YEAR(DirectorDOB) = 1969) as f;
+
+SELECT * FROM #FlowerChild;
+
+USE Training2;
+--USE Table Parameter and ISNULL for zero count
+SELECT * FROM tblCourse
+WHERE LOWER(CourseNAME) LIKE '%sql%' or LOWER(CourseNAME) LIKE '%visio%';
+
+DECLARE @TotalCourse TABLE (PersonID INT, NumberPlaces INT);
+DECLARE @SqlCourse TABLE (PersonID INT, NumberSql INT);
+DECLARE @SqlVisio TABLE (PersonID INT, NumberVisio INT);
+
+INSERT INTO @TotalCourse
+SELECT D.PersonID, COUNT(C.CourseID)FROM tblDelegate D 
+INNER JOIN tblSchedule S ON S.ScheduleID = D.ScheduleID
+INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+GROUP BY D.PersonId;
+
+INSERT INTO @SqlCourse
+SELECT D.PersonID, COUNT(C.CourseID)FROM tblDelegate D 
+INNER JOIN tblSchedule S ON S.ScheduleID = D.ScheduleID
+INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+WHERE LOWER(CourseNAME) LIKE '%sql%'
+GROUP BY D.PersonId;
+
+INSERT INTO @SqlVisio
+SELECT D.PersonID, COUNT(C.CourseID)FROM tblDelegate D 
+INNER JOIN tblSchedule S ON S.ScheduleID = D.ScheduleID
+INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+WHERE LOWER(CourseNAME) LIKE '%visio%'
+GROUP BY D.PersonId;
+
+SELECT P.PersonID, P.FirstName, P.LastName, 
+ISNULL(NumberPlaces,0) as TotalCourse, 
+ISNULL(NumberSql,0) AS SqlCourse, 
+ISNULL(NumberVisio, 0) AS VisioCourse INTO #Peoplefacts
+FROM tblPerson P 
+LEFT OUTER JOIN @TotalCourse TC ON TC.PersonID = P.Personid 
+LEFT OUTER JOIN @SqlCourse SC ON SC.PersonID = P.Personid 
+LEFT OUTER JOIN @SqlVisio SV ON SV.PersonID = P.Personid;
+
+SELECT * FROM #Peoplefacts;
+
+--USE UPDATE 
+drop table #Peoplefacts2;
+SELECT PersonID, FirstName, LastName, 0 as NumberPlaces, 0 as NumberSql, 0 as NumberVisio INTO #Peoplefacts2 From tblPerson;
+SELECT * FROM #Peoplefacts2;
+
+UPDATE #Peoplefacts2 
+SET NumberPlaces = ISNULL((SELECT COUNT(C.CourseID) FROM tblDelegate D 
+INNER JOIN tblSchedule S ON S.ScheduleID = D.ScheduleID
+INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+WHERE P2.Personid = D.PersonId 
+GROUP BY D.PersonId), 0)
+FROM #Peoplefacts2 P2
+
+UPDATE #Peoplefacts2 
+SET NumberVisio = ISNULL(
+(SELECT COUNT(C.CourseID) FROM tblDelegate D 
+INNER JOIN tblSchedule S ON S.ScheduleID = D.ScheduleID
+INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+WHERE P2.Personid = D.PersonId 
+AND (LOWER(C.CourseNAME) LIKE '%visio%')
+GROUP BY D.PersonId), 0)
+FROM #Peoplefacts2 P2
+
+UPDATE #Peoplefacts2 
+SET NumberSql = ISNULL(
+(SELECT COUNT(C.CourseID) FROM tblDelegate D 
+INNER JOIN tblSchedule S ON S.ScheduleID = D.ScheduleID
+INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+WHERE P2.Personid = D.PersonId 
+AND (LOWER(C.CourseNAME) LIKE '%sql%')
+GROUP BY D.PersonId), 0)
+FROM #Peoplefacts2 P2
+
+
+SELECT * FROM #Peoplefacts2;
+
+
+
+
+
+
+
+
+
+
+
+
