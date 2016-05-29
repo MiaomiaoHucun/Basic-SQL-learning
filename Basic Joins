@@ -1,0 +1,88 @@
+SELECT CT.ContinentName from tblContinent CT 
+LEFT OUTER JOIN tblCountry CY
+ON CY.ContinentId = CT.ContinentId 
+WHERE CY.CountryId IS NULL;
+
+SELECT CY.CountryName FROM tblCountry CY
+LEFT OUTER JOIN tblEvent E
+ON CY.CountryId = E.CountryId 
+WHERE E.EventId IS NULL;
+
+USE DoctorWho 
+GO
+
+SELECT C.CompanionName FROM tblCompanion C
+LEFT OUTER JOIN tblEpisodeCompanion E
+ON C.CompanionId = E.CompanionId 
+WHERE E.EpisodeId IS NULL;
+
+SELECT * FROM tblEpisode;
+
+SELECT A.AuthorName, COUNT(E.EpisodeId) AS Episodes, MIN(E.EpisodeDate) AS EarliestDate, MAX(E.EpisodeDate) AS LatestDate FROM tblEpisode E 
+INNER JOIN tblAuthor A ON A.AuthorId = E.AuthorId 
+GROUP BY A.AuthorName 
+ORDER BY Episodes DESC;
+
+SELECT A.AuthorName, D.DoctorName, Count(E.EpisodeId) AS Episodes FROM tblEpisode E 
+INNER JOIN tblDoctor D ON D.DoctorID = E.DoctorID
+INNER JOIN tblAuthor A ON A.AuthorId = E.AuthorId 
+GROUP BY A.AuthorName, D.DoctorName 
+HAVING COUNT(E.EpisodeId) > 5
+ORDER BY Episodes DESC;
+
+USE HistoricalEvents
+GO
+
+SELECT C.CountryName, COUNT(E.EventId) as [Number of events] FROM tblCountry C
+INNER JOIN tblEvent E ON C.CountryId = E.CountryId 
+WHERE YEAR(E.EventDate) >= 1990
+GROUP BY C.CountryName 
+HAVING COUNT(E.EventID) >= 5;
+
+SELECT LEN(EventName) as [Number of characters], COUNT(EventID) AS NumberEvents FROM tblEvent 
+GROUP BY LEN(EventName)
+ORDER BY NumberEvents DESC;
+
+SELECT CASE 
+WHEN YEAR(EventDate) >= 1940 AND YEAR(EventDate) <1950 THEN 'Decade 1 - forties'
+WHEN YEAR(EventDate) >= 1950 AND YEAR(EventDate) <1960 THEN 'Decade 2 - fifties'
+WHEN YEAR(EventDate) >= 1960 AND YEAR(EventDate) <1970 THEN 'Decade 3 - sixties'
+WHEN YEAR(EventDate) >= 1970 AND YEAR(EventDate) <1980 THEN 'Decade 4 - seventies'
+WHEN YEAR(EventDate) >= 1980 AND YEAR(EventDate) <1990 THEN 'Decade 5 - eighties'
+WHEN YEAR(EventDate) >= 1990 AND YEAR(EventDate) <2000 THEN 'Decade 6 - nineties'
+ELSE 'Decade 7 - noughties'
+END AS Decade, COUNT(EventID)
+FROM tblEvent 
+GROUP BY 
+CASE 
+WHEN YEAR(EventDate) >= 1940 AND YEAR(EventDate) <1950 THEN 'Decade 1 - forties'
+WHEN YEAR(EventDate) >= 1950 AND YEAR(EventDate) <1960 THEN 'Decade 2 - fifties'
+WHEN YEAR(EventDate) >= 1960 AND YEAR(EventDate) <1970 THEN 'Decade 3 - sixties'
+WHEN YEAR(EventDate) >= 1970 AND YEAR(EventDate) <1980 THEN 'Decade 4 - seventies'
+WHEN YEAR(EventDate) >= 1980 AND YEAR(EventDate) <1990 THEN 'Decade 5 - eighties'
+WHEN YEAR(EventDate) >= 1990 AND YEAR(EventDate) <2000 THEN 'Decade 6 - nineties'
+ELSE 'Decade 7 - noughties'
+END
+ORDER BY Decade;
+
+USE DoctorWho 
+go
+
+SELECT YEAR(E.EpisodeDate) as EpisodeYear, EN.EnemyName, COUNT(E.EpisodeId) AS [Number of episodes]  FROM tblEpisode E
+INNER JOIN tblDoctor D ON D.DoctorId = E.DoctorId 
+INNER JOIN tblEpisodeEnemy EE ON EE.EpisodeId = E.EpisodeId 
+INNER JOIN tblEnemy EN ON EN.EnemyId = EE.EnemyId 
+WHERE YEAR(D.BirthDate) < 1970
+GROUP BY YEAR(E.EpisodeDate), EN.EnemyName
+HAVING COUNT(E.EpisodeId) > 1
+ORDER BY COUNT(E.EpisodeId) DESC;
+
+USE HistoricalEvents 
+GO 
+
+SELECT YEAR(EventDate) AS EventYear, 
+MONTH(EventDate) AS EventMonth, 
+COUNT(EventID) AS [Number of Event] FROM tblEvent
+GROUP BY cube(YEAR(EventDate), MONTH(EventDate))
+ORDER BY EventYear desc, EventMonth desc; 
+
