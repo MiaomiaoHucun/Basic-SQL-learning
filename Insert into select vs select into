@@ -1,0 +1,100 @@
+SELECT top 5 * from dbo.[group Ab];
+
+select TOP 5 [Feature ID], [Difference] from dbo.[group Ab]
+
+CREATE TABLE RawData
+(ID nvarchar(255) NOT NULL PRIMARY KEY, 
+A1 float, A2 float,
+B1 float, B2 float, B3 float,
+C1 float, C2 float, C3 float,
+D1 float, D2 float, D3 float,
+E1 float, E2 float, E3 float,
+F3 float
+);
+
+-- INSERT INTO SELECT TO ADD ROWS IN EXISTING TABLE
+INSERT INTO dbo.RawData (ID, A1, A2, B1, B2, B3)
+SELECT [Feature ID], 
+[RPKM - Sample A1],
+[RPKM - Sample A2],
+[RPKM - Sample B1],
+[RPKM - Sample B2],
+[RPKM - Sample B3] 
+FROM DBO.[group Ab] AS AB;
+ 
+SELECT * FROM DBO.RawData;
+
+-- ONCE SET PK, INSERT INTO SELECT HAS TO INCLUDE PK
+INSERT INTO dbo.RawData (D1, D2, D3)
+SELECT 
+[RPKM- Sample D1],
+[RPKM- Sample D2],
+[RPKM- Sample D3] 
+FROM DBO.[group AD];
+
+Delete from dbo.RawData;
+
+
+-- HOWEVER, SELECT INTO CREATS A NEW TABLE WHILE EXECUTING, HAVE TO ADD PK LATER
+SELECT AB.[Feature ID] ID, 
+AB.[RPKM - Sample A1] A1,
+AB.[RPKM - Sample A2] A2,
+AB.[RPKM - Sample B1] B1,
+AB.[RPKM - Sample B2] B2,
+AB.[RPKM - Sample B3] B3, 
+AD.[RPKM- Sample D1] D1,
+AD.[RPKM- Sample D2] D2,
+AD.[RPKM- Sample D3] D3,
+AF.[RPKM - Sample F3] F3,
+BC.[RPKM - Sample C1] C1,
+BC.[RPKM - Sample C2] C2,
+BC.[RPKM - Sample C3] C3,
+BE.[RPKM - Sample E1] E1,
+BE.[RPKM - Sample E2] E2,
+BE.[RPKM - Sample E3] E3
+
+INTO RawData1
+
+FROM DBO.[group Ab] AS AB
+INNER JOIN dbo.[group AD] AS AD
+ON AB.[Feature ID] = AD.[Feature ID]
+INNER JOIN dbo.[Group AF] AF
+ON AB.[Feature ID] = AF.[Feature ID]
+INNER JOIN dbo.[Group BC] BC
+ON AB.[Feature ID] = BC.[Feature ID]
+INNER JOIN dbo.[Group BE] BE 
+ON AB.[Feature ID] = BE.[Feature ID];
+
+SELECT * FROM RawData1;
+-- RawData1 has no PK
+
+
+--INSERT INTO SELECT COPY THE COLUMNS INTO AN EXISTING TABLE. IT GETS COMPLICATED WHEN PK EXISTS.
+INSERT INTO RawData
+
+SELECT AB.[Feature ID] ID, 
+AB.[RPKM - Sample A1] A1,
+AB.[RPKM - Sample A2] A2,
+AB.[RPKM - Sample B1] B1,
+AB.[RPKM - Sample B2] B2,
+AB.[RPKM - Sample B3] B3, 
+AD.[RPKM- Sample D1] D1,
+AD.[RPKM- Sample D2] D2,
+AD.[RPKM- Sample D3] D3,
+AF.[RPKM - Sample F3] F3,
+BC.[RPKM - Sample C1] C1,
+BC.[RPKM - Sample C2] C2,
+BC.[RPKM - Sample C3] C3,
+BE.[RPKM - Sample E1] E1,
+BE.[RPKM - Sample E2] E2,
+BE.[RPKM - Sample E3] E3
+
+FROM DBO.[group Ab] AS AB
+INNER JOIN dbo.[group AD] AS AD
+ON AB.[Feature ID] = AD.[Feature ID]
+INNER JOIN dbo.[Group AF] AF
+ON AB.[Feature ID] = AF.[Feature ID]
+INNER JOIN dbo.[Group BC] BC
+ON AB.[Feature ID] = BC.[Feature ID]
+INNER JOIN dbo.[Group BE] BE 
+ON AB.[Feature ID] = BE.[Feature ID];
