@@ -1,0 +1,75 @@
+USE DoctorWho;
+
+CREATE FUNCTION fnNumCompanions 
+(@EpisodeID int)
+RETURNS int
+WITH SCHEMABINDING 
+AS
+BEGIN
+	DECLARE @NumCom int
+	SELECT @NumCom = COUNT(DISTINCT CompanionID) FROM dbo.tblEpisodeCompanion 
+	WHERE EpisodeId = @EpisodeID 
+	RETURN @NumCom
+END;
+
+CREATE FUNCTION fnNumEnemies 
+(@EpisodeID int)
+RETURNS int
+WITH SCHEMABINDING 
+AS
+BEGIN
+	DECLARE @NumEn int
+	SELECT @NumEn = COUNT(DISTINCT EnemyID) FROM dbo.tblEpisodeEnemy 
+	WHERE EpisodeId = @EpisodeID 
+	RETURN @NumEN
+End;
+
+CREATE FUNCTION fnWords
+(@term NVARCHAR(200))
+RETURNS INT
+WITH SCHEMABINDING
+AS
+BEGIN
+	DECLARE @words int
+	SELECT @words = LEN(@term)-LEN(REPLACE(@term,' ', '')) +1
+	RETURN @words
+END;
+
+SELECT EpisodeId, Title, 
+dbo.fnNumCompanions(EpisodeId) AS Companions, 
+dbo.fnNumEnemies(EpisodeId) AS Enemies,
+dbo.fnWords(Title) AS Words 
+FROM tblEpisode 
+ORDER BY Words DESC;
+
+
+USE Websites;
+
+SELECT * FROM tblDomain;
+SELECT * FROM tblWebsite;
+SELECT REVERSE('123456');
+SELECT CHARINDEX('2','123456');
+
+
+SELECT RIGHT(WebsiteUrl, CHARINDEX('.', REVERSE(WebsiteUrl))), WebsiteUrl FROM tblWebsite 
+SELECT dbo.fnDomain(WebsiteUrl), WebsiteUrl FROM tblWebsite;
+
+ALTER FUNCTION fnDomain
+(@site varchar(100))
+RETURNS nvarchar(7)
+AS
+BEGIN
+	DECLARE @Domain varchar(7)
+	SELECT @Domain = RIGHT(@site, CHARINDEX('.', REVERSE(@site)))
+	RETURN @Domain
+END;
+
+SELECT 
+	WebsiteName as WebSite,
+	WebsiteUrl as URL,
+	D.DomainName as Domain,
+	dbo.fnDomain(WebsiteUrl) as DomainN
+
+FROM tblWebsite W
+INNER JOIN tblDomain D ON D.DomainId = W.DomainId 
+WHERE D.DomainName <> dbo.fnDomain(WebsiteUrl);
