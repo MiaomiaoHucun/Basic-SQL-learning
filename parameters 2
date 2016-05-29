@@ -1,0 +1,27 @@
+use DoctorWho
+go
+
+ALTER PROCEDURE spEnemyEpisodes 
+(@EnemyN NVARCHAR(10) = 'Dalek')
+AS
+BEGIN
+DECLARE @EpiCounts INT
+DECLARE @EnemyNameActual NVARCHAR(20)
+
+SELECT @EpiCounts = COUNT(E.EpisodeId), @EnemyNameActual = EY.EnemyName FROM tblEpisode E
+INNER JOIN tblEpisodeEnemy EE ON EE.EpisodeId = E.EpisodeId 
+INNER JOIN tblEnemy EY ON EY.EnemyId = EE.EnemyId 
+WHERE LOWER(EY.EnemyName) LIKE '%' + LOWER(@EnemyN) + '%'
+GROUP BY EY.EnemyName
+
+PRINT CAST(@EpiCounts AS NVARCHAR(3)) + CASE 
+	WHEN @EpiCounts = 1 THEN ' (episode featuring the '
+	ELSE ' (episodes featuring the '
+	END
+	+ @EnemyNameActual +')'
+END;
+
+EXEC spEnemyEpisodes;
+EXEC spEnemyEpisodes 'od';
+EXEC spEnemyEpisodes 'uton';
+EXEC spEnemyEpisodes 'silence';
