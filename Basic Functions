@@ -1,0 +1,113 @@
+CREATE FUNCTION fnWeekDay (@date DATETIME)
+RETURNS NVARCHAR
+WITH SCHEMABINDING AS
+BEGIN 
+	DECLARE @WeekdayName as NVARCHAR;
+	SELECT @WeekdayName = DATENAME(WEEKDAY, @date);
+	RETURN @WeekDayName;
+
+END; 
+
+USE HistoricalEvents;
+
+ALTER FUNCTION fnWeekDay (@date DATETIME)
+RETURNS NVARCHAR (50)
+WITH SCHEMABINDING AS
+BEGIN 
+	DECLARE @WeekdayName as NVARCHAR(50);
+	SELECT @WeekdayName = DATENAME(WEEKDAY, @date);
+	RETURN @WeekDayName;
+
+END; 
+
+SELECT dbo.fnWeekDay(EventDate) AS [Day of week], 
+count(EventID) AS [Number of events] FROM tblEvent
+GROUP BY dbo.fnWeekDay(EventDate)
+;
+
+SELECT DATENAME(WEEKDAY, getdate());
+
+CREATE FUNCTION fn_Punk (@date DATETIME)
+RETURNS NVARCHAR (10)
+WITH SCHEMABINDING AS 
+BEGIN 
+	DECLARE @Punk as NVARCHAR(10);
+	SELECT @Punk =  CASE 
+	WHEN YEAR(@date) < 1975 THEN 'Pre-Punk'
+	WHEN YEAR(@date) < = 1979 Then 'Punk'
+	ELSE 'Post-Punk'
+	END;
+RETURN @Punk;
+
+END;
+
+SELECT dbo.fn_Punk(getdate());
+
+SELECT dbo.fn_Punk(EventDate) AS [Punk Era], COUNT(EventID) AS [Number of events] FROM tblEvent
+GROUP BY dbo.fn_Punk(EventDate);
+
+
+CREATE FUNCTION fn_ExtraText (@text1 NVARCHAR(max), @text2 NVARCHAR(max), @text3 NVARCHAR(max))
+RETURNS NVARCHAR(MAX)
+WITH SCHEMABINDING AS
+
+BEGIN
+	DECLARE @Alltext AS NVARCHAR(MAX);
+	SELECT @Alltext = @text1 + ' ' + @text2 + ' ' + @text3;
+	RETURN @Alltext;
+END;
+
+SELECT EventName, Description, dbo.fn_ExtraText(EventName, Description, EventName) as [All Text] FROM tblEvent;
+
+--To add default parameters
+
+CREATE FUNCTION fn_ExtraText2 (@text1 NVARCHAR(max), @text2 NVARCHAR(max)='', @text3 NVARCHAR(max)='')
+RETURNS NVARCHAR(MAX)
+WITH SCHEMABINDING AS
+
+BEGIN
+	DECLARE @Alltext AS NVARCHAR(MAX);
+	SELECT @Alltext = @text1 + ' ' + @text2 + ' ' + @text3;
+	RETURN @Alltext;
+END;
+
+SELECT EventName, Description, dbo.fn_ExtraText2(EventName, Description, DEFAULT) as [All Text] FROM tblEvent;
+
+
+
+
+
+
+
+
+
+
+--Optional parameters
+CREATE FUNCTION fn_ExtraText3 (@text1 NVARCHAR(max), @text2 NVARCHAR(max)='', @text3 NVARCHAR(max)='')
+RETURNS NVARCHAR(MAX)
+WITH SCHEMABINDING AS
+
+BEGIN
+	DECLARE @Alltext AS NVARCHAR(MAX);
+	SELECT @Alltext = dbo.fn_ExtraText2(@text1, Default, DEFAULT);
+	RETURN @Alltext;
+END;
+
+
+SELECT EventName, Description, dbo.fn_ExtraText3(EventName, Description, DEFAULT) as [All Text] FROM tblEvent;
+
+--Datefunction
+
+CREATE FUNCTION fnNiceDate (@date DATETIME)
+RETURNS NVARCHAR(50)
+WITH SCHEMABINDING AS
+
+BEGIN
+	DECLARE @Nicedate AS NVARCHAR(50);
+	SELECT @Nicedate = DATENAME(WEEKDAY,@date) + ' ' + CAST(DATEPART(DAY,@date) AS NVARCHAR(50)) + ' ' + DATENAME(MONTH,@date) + ' ' + DATENAME(YEAR,@date);
+	RETURN @Nicedate;
+END;
+
+SELECT dbo.fnNiceDate(GETDATE());
+SELECT EventName, EventDate, dbo.fnNiceDate(EventDate) as [Nice date] FROM tblEvent;
+;
