@@ -1,0 +1,115 @@
+USE HistoricalEvents;
+
+CREATE PROCEDURE spEventsBetweenDates 
+	@date1 DATETIME,
+	@date2 DATETIME
+AS 
+
+SELECT EventName, EventDate FROM tblEvent 
+WHERE EventDate BETWEEN @date1 AND @date2;
+
+EXEC spEventsBetweenDates '01/01/1970','12/31/1972';
+
+
+
+CREATE PROCEDURE spAddEvent 
+	@EventName NVARCHAR(255),
+	@EventDate DATETIME,
+	@Description NVARCHAR(255),
+	@CountryID INT
+AS
+
+INSERT INTO [dbo].[tblEvent]
+	(EventName,
+	EventDate,
+	Description,
+	CountryId)
+VALUES (@EventName,
+		@EventDate,
+		@Description,
+		@CountryID);  
+
+
+EXEC spAddEvent 'Cyril Smith dies','09/03/2010','He dies.',17;
+SELECT * FROM tblEvent 
+WHERE EventName LIKE 'Cyril Smith%';
+
+EXEC spAddEvent 'Spain win world cup','07/11/2010','Spain defeat the Netherlands', 14;
+
+SELECT * FROM tblEvent 
+WHERE EventName LIKE '%Spain%';
+
+--Optional Parameters
+
+CREATE PROCEDURE spEvents 
+	@FirstL NVARCHAR = NULL,
+	@LastL NVARCHAR = NULL
+AS 
+	SELECT EventName, EventDate FROM tblEvent
+	WHERE (@FirstL IS NULL OR (@FirstL = LOWER(LEFT(EventName,1))) OR (@FirstL = UPPER(LEFT(EventName,1))))
+	AND  (@LastL IS NULL OR (@LastL = LOWER(RIGHT(EventName,1))) OR (@FirstL = UPPER(RIGHT(EventName,1))));
+
+EXEC spEvents 'T','S';
+EXEC spEvents 'e';
+
+USE DoctorWho;
+GO
+
+CREATE PROCEDURE spDocAndYear
+	@Doc NVARCHAR(50) = 'Matt Smith',
+	@Year INT = 2012
+AS
+SELECT E.SeriesNumber AS Series, 
+E.EpisodeNumber AS Episode, 
+E.Title,
+E.EpisodeDate, D.DoctorName FROM tblEpisode E 
+INNER JOIN tblDoctor D ON E.DoctorId=D.DoctorID
+WHERE (D.DoctorName = @Doc) 
+	AND	(YEAR(E.EpisodeDate) = @Year);
+
+EXEC spDocAndYear;
+
+ALTER PROCEDURE spAuthor
+	@Author NVARCHAR(50) = 'Peter Harness'
+
+AS
+	SELECT E.Title, A.AuthorName FROM tblEpisode E
+	INNER JOIN tblAuthor A ON A.AuthorId = E.AuthorId
+	WHERE A.AuthorName = @Author 
+	ORDER BY E.EpisodeDate DESC;
+
+EXEC spAuthor;
+EXEC spAuthor 'Steve Thompson';
+
+CREATE PROCEDURE SelectTwo
+AS 
+BEGIN
+SELECT * FROM tblDoctor
+SELECT * FROM tblEnemy
+END;
+
+EXEC SelectTwo;
+
+--Multiple Result Sets
+
+CREATE PROCEDURE spSelectTopN 
+(@TopN INT = 3)
+AS
+BEGIN
+
+SELECT TOP (@TopN) C.CompanionName, COUNT(E.EpisodeId) AS Episodes FROM tblCompanion C
+INNER JOIN tblEpisodeCompanion EC ON EC.CompanionId = C.CompanionId
+INNER JOIN tblEpisode E on E.EpisodeId = EC.EpisodeId
+GROUP BY C.CompanionName
+ORDER BY COUNT(E.EpisodeId) DESC
+
+SELECT TOP (@TopN) EY.EnemyName, COUNT(E1.EpisodeId) AS Episodes FROM tblEnemy EY
+INNER JOIN tblEpisodeEnemy EE ON EE.EnemyId = EY.EnemyId
+INNER JOIN tblEpisode E1 on E1.EpisodeId = EE.EpisodeId
+GROUP BY EY.EnemyName
+ORDER BY COUNT(E1.EpisodeId) DESC
+
+END; 
+
+EXEC spSelectTopN;
+EXEC spSelectTopN 5;
