@@ -1,0 +1,204 @@
+USE Training2;
+
+CREATE FUNCTION dbo.fnTableCourse 
+(@StartDate date, @EndDate date)
+RETURNS @tblScheduleCourse TABLE (ScheduleId INT, CourseName nvarchar(200), StartDate datetime)
+AS
+BEGIN
+
+	INSERT INTO @tblScheduleCourse (ScheduleId, CourseName, StartDate)
+	SELECT ScheduleId, CourseName, StartDate FROM tblSchedule S
+	INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+	WHERE CAST(StartDate AS date) BETWEEN @StartDate AND @EndDate;
+
+	RETURN
+END;
+
+SELECT * FROM dbo.fnTableCourse('01-01-2010', '2010-01-31')
+ORDER BY StartDate;
+
+--DATE formate question
+Create table DateFormat (Input nvarchar(20), AsDate datetime);
+INSERT INTO DateFormat VALUES ('05-11-2013', '05-11-2013');INSERT INTO DateFormat VALUES ('2013-11-05', '2013-11-05');
+INSERT INTO DateFormat VALUES ('2013/11/05', '2013/11/05');INSERT INTO DateFormat VALUES ('2013/05/11', '2013/05/11');
+INSERT INTO DateFormat VALUES ('05/11/2013', '05/11/2013');INSERT INTO DateFormat VALUES ('Nov 04 2014', 'Nov 04 2014');
+INSERT INTO DateFormat VALUES ('04 Nov 2014', '04 Nov 2014');INSERT INTO DateFormat VALUES ('04 Nov 14', '04 Nov 14');
+INSERT INTO DateFormat VALUES ('Nov 04 14', 'Nov 04 14');INSERT INTO DateFormat VALUES ('2014 Nov 04', '2014 Nov 04');
+INSERT INTO DateFormat VALUES ('Nov 04 2014', 'Nov 04 2014');INSERT INTO DateFormat VALUES ('Nov 04 14', 'Nov 04 14');
+INSERT INTO DateFormat VALUES ('04 Nov 14', '04 Nov 14'); INSERT INTO DateFormat VALUES ('14 Nov 04', '14 Nov 04'); 
+
+SELECT *, CONVERT(VARCHAR(11), AsDate, 106) AS ClearDate FROM DateFormat;
+
+use DoctorWho;
+
+SELECT * FROM tblEpisode;
+
+ALTER FUNCTION fn_EpisodeByName (@Name nvarchar(30))
+RETURNS @tblDoctor TABLE (EpisodeID int, Title nvarchar(100), SeriesNumber int, EpisodeNumber int, AuthorId int)
+AS
+BEGIN
+	INSERT INTO @tblDoctor 
+	SELECT EpisodeID, Title, SeriesNumber, EpisodeNumber, AuthorId
+	FROM tblEpisode E
+	INNER JOIN tblDoctor D ON D.DoctorId = E.DoctorId  
+	WHERE D.DoctorName LIKE '%' + @Name + '%'
+	RETURN
+END;
+
+SELECT * FROM dbo.fn_EpisodeByName('Chris');
+
+SELECT C.SeriesNumber, C.EpisodeNumber, C.Title, A.AuthorName FROM dbo.fn_EpisodeByName('Chris') C
+INNER JOIN tblAuthor A ON A.AuthorId = C.AuthorId;
+
+
+--Series and Authors
+ALTER FUNCTION fn_ChosenEpisode (
+	@SeriousNumber int = null,
+	@AuthorName nvarchar(100) = null
+	)
+RETURNS @tblEpisodeByAuthor TABLE (Title nvarchar(200), Author nvarchar(100), Doctor nvarchar(100))
+AS
+BEGIN
+	
+	INSERT INTO @tblEpisodeByAuthor SELECT Title, A.AuthorName, D.DoctorName FROM tblEpisode E
+	INNER JOIN tblAuthor A ON A.AuthorId = E.AuthorId 
+	INNER JOIN tblDoctor D ON D.DoctorId = E.DoctorId 
+	WHERE SeriesNumber = ISNULL(@SeriousNumber, SeriesNumber) 
+	AND LOWER(A.AuthorName) LIKE '%' + LOWER(ISNULL(@AuthorName, A.AuthorName)) + '%'
+	RETURN 
+END;
+
+SELECT * FROM dbo.fn_ChosenEpisode (1, 'russell');
+SELECT * FROM dbo.fn_ChosenEpisode (2, null);
+SELECT * FROM dbo.fn_ChosenEpisode (2);
+SELECT * FROM dbo.fn_ChosenEpisode (NULL, null);
+
+
+--Course for horse
+USE Training;
+
+alter FUNCTION fn_CourseForResources (@ResourceName nvarchar(30))
+RETURNS @tblCourseResources TABLE (
+ScheduleId int,
+CourseName nvarchar(200),
+StartDate datetime,
+ResourceIds nvarchar(100)
+) AS
+BEGIN
+	DECLARE @ResourceID int = NULL
+	SELECT @ResourceID = ResourceId FROM tblResource
+	WHERE ResourceName = @ResourceName 
+	
+	IF @ResourceID is NULL
+	INSERT INTO @tblCourseResources 
+	VALUES (0, 'No course needs' + @ResourceName, null, 'No Id Available')
+	
+	ELSE
+		BEGIN
+		INSERT INTO @tblCourseResources 
+		SELECT S.ScheduleId, C.CourseName, S.StartDate, S.ResourceIds FROM tblSchedule S
+		INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+		WHERE CHARINDEX(CAST(@ResourceID AS nvarchar(10)) + ',', S.ResourceIDs + ',', 1) > 0 
+		END
+	RETURN
+END;
+
+SELECT * FROM fn_CourseForResources ('rojector');
+
+--Character Search
+USE Movies;
+CREATE FUNCTION fn_Characters (@Name nvarchar(50))
+RETURNS @tblCharacterInfo TABLE (
+FilmDirectorId int,
+Actor nvarchar(50),
+Character nvarchar(50),
+Flim nvarchar(100)
+) AS
+BEGIN
+	INSERT INTO @tblCharacterInfo 
+	SELECT FilmDirectorID, A.ActorName, C.CastCharacterName, F.FilmName FROM tblFilm F
+	INNER JOIN tblCast C ON C.CastFilmID = F.FilmID
+	INNER JOIN tblActor A ON A.ActorID = C.CastActorID 
+	WHERE LOWER(C.CastCharacterName) LIKE '%' + LOWER(@Name) + '%'
+
+	RETURN
+END;
+
+SELECT * FROM fn_Characters ('BEN');
+
+SELECT Actor, Flim as Film, Character, D.DirectorName FROM fn_Characters ('BEN') B
+INNER JOIN tblDirector D ON D.DirectorID = B.FilmDirectorID;
+
+
+USE DoctorWho;
+
+--Silly
+
+ALTER FUNCTION fn_Companions (@EpisodeId int)
+RETURNS nvarchar(500)
+AS 
+BEGIN
+	DECLARE @CompNames nvarchar(500) = '';
+	SELECT @CompNames = @CompNames + C.CompanionName + ', '
+	FROM tblCompanion C
+	INNER JOIN tblEpisodeCompanion EC ON EC.CompanionId = C.CompanionId 
+	WHERE EC.EpisodeId = @EpisodeId;
+
+	SELECT @CompNames = LEFT(@CompNames, LEN(@CompNames)- 1)
+	
+	RETURN @CompNames
+END;
+
+SELECT dbo.fn_Companions(6); 
+
+alter FUNCTION fn_Enemies (@EpisodeId int)
+RETURNS nvarchar(500)
+AS 
+BEGIN
+	DECLARE @CompNames nvarchar(500) = '';
+	SELECT @CompNames = @CompNames + E.EnemyName + ', '
+	FROM tblEnemy E
+	INNER JOIN tblEpisodeEnemy EE ON EE.EnemyId = E.EnemyId  
+	WHERE EE.EpisodeId = @EpisodeId;
+
+	SELECT @CompNames = LEFT(isnull(@CompNames, ' No Enemy for this ID'), LEN(isnull(@CompNames, 'CCab'))- 1)
+	
+	RETURN @CompNames
+END;
+
+SELECT episodeId, dbo.fn_Enemies(episodeId) FROM tblEpisode; 
+
+CREATE FUNCTION fn_Silly 
+(@CompanionName nvarchar(20),
+ @EnemyName nvarchar(20))
+ Returns @tblSilly TABLE (
+ SeriesNO INT,
+ EpisodeNo INT,
+ Title nvarchar(200),
+ Doctor nvarchar(100),
+ Author nvarchar(100),
+ Appearing nvarchar(200)
+) AS
+BEGIN
+	INSERT INTO @tblSilly 
+	SELECT E.SeriesNumber, E.EpisodeNumber, E.Title, D.DoctorName, A.AuthorName, dbo.fn_Companions(E.EpisodeId) FROM tblEpisode E
+	INNER JOIN tblDoctor D on D.DoctorId = e.DoctorId
+	INNER JOIN tblAuthor A on A.AuthorId = E.AuthorId 
+	INNER JOIN tblEpisodeCompanion EC ON EC.EpisodeId = E.EpisodeId 
+	INNER JOIN tblCompanion C ON C.CompanionId = EC.CompanionId 
+	WHERE LOWER(C.CompanionName) LIKE '%' + @CompanionName + '%'
+
+	UNION ALL
+
+	SELECT E.SeriesNumber, E.EpisodeNumber, E.Title, D.DoctorName, A.AuthorName, dbo.fn_Enemies(E.EpisodeId) FROM tblEpisode E
+	INNER JOIN tblDoctor D on D.DoctorId = e.DoctorId
+	INNER JOIN tblAuthor A on A.AuthorId = E.AuthorId 
+	INNER JOIN tblEpisodeEnemy EE ON EE.EpisodeId = E.EpisodeId 
+	INNER JOIN tblEnemy EY ON EY.EnemyId = EE.EnemyId 
+	WHERE LOWER(EY.EnemyName) LIKE '%' + @EnemyName + '%'
+
+	RETURN
+END;
+
+SELECT * FROM fn_Silly ('wilf', 'ood');
+	
