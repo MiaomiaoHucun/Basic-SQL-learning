@@ -1,0 +1,98 @@
+use DoctorWho;
+go
+
+--Problems
+SELECT * FROM tblEpisode;
+SELECT * FROM tblEnemy;
+
+SELECT * INTO #Problem1
+FROM (
+SELECT 
+	'tblEnemy' AS TableName, EnemyId AS Id, 'Description' AS ColumnName, 
+	LEFT(Description, 75) AS ColumnValue,
+	'Description has ' + Cast(len(Description) as nvarchar(5)) + ' letters' AS ProblemName 
+From tblEnemy   
+WHERE len(Description) > 75
+
+UNION ALL
+
+SELECT 
+	'tblEpisode' AS TableName, EpisodeId AS Id, 'Notes' AS ColumnName, 
+	Notes AS ColumnValue,
+	'Notes field filled in' AS ProblemName 
+From tblEpisode   
+WHERE Notes IS NOT NULL
+) p; -- An alias is a must for derived tables
+SELECT * FROM #Problem1 --Take a look
+--No PrimaryKey yet, Add Primary Key to a new table
+CREATE TABLE #Problem2 (ProblemId INT PRIMARY KEY IDENTITY(1,1),
+ID INT, ColumnName nvarchar(20),ColumnValue nvarchar(100),ProblemName nvarchar(50));
+
+INSERT INTO #Problem2 (ID, ColumnName, ColumnValue,ProblemName)
+SELECT ID, ColumnName, ColumnValue,ProblemName FROM #Problem1;
+
+SELECT * FROM #Problem2;
+
+-- Trainer Names
+
+use Training2;
+
+CREATE FUNCTION dbo.fn_CSVtoTable 
+(@CSVlist nvarchar(500))
+RETURNS @Table TABLE (ColumnData nvarchar(100))
+AS
+BEGIN 
+	IF RIGHT(@CSVlist, 1) <> ','
+	SET @CSVlist = @CSVlist + ','
+
+	DECLARE @Pos INT = 1
+	DECLARE @OldPos INT = 1
+
+	WHILE @Pos < LEN(@CSVlist)
+		BEGIN
+		SET @Pos = CHARINDEX(',', @CSVlist, @OldPos)
+		INSERT INTO @Table 
+		SELECT LTRIM(RTRIM(SUBSTRING(@CSVlist, @OldPos, @Pos- @OldPos)))
+
+		SET @OldPos = @Pos + 1
+		END
+	RETURN
+END;
+
+SELECT * FROM dbo.fn_CSVtoTable('21,343,2322,43,miao,miaomiao');
+
+CREATE FUNCTION fn_TrainNames (@ScheduleID INT)
+RETURNS NVARCHAR(500) 
+AS
+BEGIN
+DECLARE @longIDs NVARCHAR(500)
+DECLARE @tblstringparts TABLE (ColumnData nvarchar(100))
+DECLARE @tbltrainername TABLE (Names nvarchar(100))
+DECLARE @ConNames NVARCHAR(500) = ''
+DECLARE @FinalNames NVARCHAR(500)
+
+SELECT @longIDs = trainerIdS FROM tblSchedule WHERE ScheduleId = @scheduleId 
+
+INSERT INTO @tblstringparts SELECT * FROM dbo.fn_CSVtoTable(@longIDs)
+
+INSERT INTO @tbltrainername SELECT TrainerName FROM tblTrainer 
+INNER JOIN dbo.fn_CSVtoTable(@longIDs) ID ON CAST(ID.ColumnData AS INT) = TrainerId 
+
+SELECT @ConNames = @ConNames + ', ' + Names from @tbltrainername
+
+SELECT @FinalNames = RIGHT(@ConNames, LEN(@ConNames)-1)
+
+RETURN @FinalNames
+END;
+
+SELECT ScheduleId, TrainerIDs, dbo.fn_TrainNames(ScheduleId) as TrainerNames FROM tblSchedule;
+
+USE DoctorWho;
+SELECT * FROM sys.objects;
+
+SELECT type_desc AS ObjectType, name AS ObjectName, CAST(create_date AS DATE) AS DateCreated
+INTO #SysObjects FROM sys.objects
+WHERE type_desc LIKE '%SCALAR%' OR type_desc LIKE '%STORED%';
+
+SELECT * FROM #SysObjects
+ORDER BY ObjectType desc;
