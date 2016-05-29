@@ -1,0 +1,46 @@
+USE Training;
+go
+
+
+
+DECLARE @CourseID INT = 24;
+DECLARE @People NVARCHAR(MAX) = '';
+DECLARE @Course NVARCHAR(100) = '';
+
+SELECT @People = @People + P.FirstName + ' ' + P.LastName + CHAR(13) + CHAR(10) FROM tblPerson P
+INNER JOIN tblDelegate D ON D.PersonId = P.Personid 
+INNER JOIN tblSchedule S ON S.ScheduleId = D.ScheduleId 
+INNER JOIN tblCourse C ON C.CourseId = S.CourseId 
+WHERE C.CourseId = @CourseID;
+
+SELECT @Course = CourseName FROM tblCourse
+WHERE CourseId = @CourseID;
+
+PRINT @Course + CHAR(13) + CHAR(10)+ CHAR(13) + CHAR(10) + @People;
+
+
+ALTER PROCEDURE spPrintCourseInfo
+(@CourseNo int = 17)
+AS 
+BEGIN
+DECLARE @CourseName NVARCHAR(100)
+DECLARE @StartDate NVARCHAR(20)
+DECLARE @DaysLast NVARCHAR(3)
+
+SELECT @CourseName  = CourseName, @DaysLast = CAST(NumberDays AS NVARCHAR(3)) FROM tblCourse 
+WHERE @CourseNo = CourseId 
+
+SELECT @StartDate = CONVERT(NVARCHAR(20), StartDate, 106) FROM tblSchedule 
+WHERE @CourseNo = CourseId 
+
+PRINT 'About course number ' + CAST(@CourseNo AS NVARCHAR(3)) + CHAR(13) + CHAR(10)
++ '-----------------------------------------' + CHAR(13) + CHAR(10)
++ CHAR(13) + CHAR(10)
++ 'Start Date: ' + @StartDate + CHAR(13) + CHAR(10)
++ 'Course Name:' + @CourseName + CHAR(13) + CHAR(10)
++ 'Course Length: ' + @DaysLast + ' day(s)'
+END;
+
+EXEC spPrintCourseInfo;
+EXEC spPrintCourseInfo 35;
+
