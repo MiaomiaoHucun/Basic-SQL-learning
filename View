@@ -1,0 +1,126 @@
+USE HistoricalEvents 
+GO
+
+CREATE VIEW vwSingleYear2000Sorted1 AS 
+SELECT EventName, EventDate FROM tblEvent 
+WHERE YEAR(EventDate) = 2000
+ORDER BY EventDate;
+
+CREATE VIEW vwSingleYear2000 AS
+SELECT EventName, EventDate FROM tblEvent 
+WHERE YEAR(EventDate) = 2000;
+
+CREATE VIEW vwSingleYear2000Sorted AS 
+SELECT TOP 100 PERCENT EventName, EventDate FROM tblEvent 
+WHERE YEAR(EventDate) = 2000
+ORDER BY EventDate;
+
+
+SELECT * FROM vwSingleYear2000;
+
+SELECT * FROM vwSingleYear2000Sorted;
+
+CREATE VIEW vwSingleYear2001 AS
+SELECT TOP 5 EventName, EventDate FROM tblEvent 
+WHERE YEAR(EventDate) = 2001
+ORDER BY EventDate;
+
+SELECT * FROM vwSingleYear2001;
+
+SELECT * FROM vwAfrica;
+
+CREATE VIEW vwAfricaAsia AS
+SELECT        TOP (100) PERCENT dbo.tblEvent.EventName, dbo.tblEvent.EventDate, dbo.tblContinent.ContinentName
+FROM            dbo.tblEvent INNER JOIN
+                         dbo.tblCountry ON dbo.tblEvent.CountryId = dbo.tblCountry.CountryId INNER JOIN
+                         dbo.tblContinent ON dbo.tblCountry.ContinentId = dbo.tblContinent.ContinentId
+WHERE        (dbo.tblContinent.ContinentName = 'Africa' OR dbo.tblContinent.ContinentName = 'Asia')
+ORDER BY dbo.tblEvent.EventDate;
+
+SELECT * FROM vwAfricaAsia;
+
+USE DoctorWho;
+GO
+
+SELECT * FROM vwEpsiodesByFirstLetter;
+
+DECLARE @Inital varchar;
+SET @Inital = 'F';
+GO
+CREATE VIEW vwvwEpsiodesByFirstLetterVariable AS
+SELECT        TOP (100) PERCENT dbo.tblEpisode.Title, dbo.tblDoctor.DoctorName, dbo.tblAuthor.AuthorName, dbo.tblEpisode.EpisodeDate
+FROM            dbo.tblAuthor INNER JOIN
+                         dbo.tblEpisode ON dbo.tblAuthor.AuthorId = dbo.tblEpisode.AuthorId INNER JOIN
+                         dbo.tblDoctor ON dbo.tblEpisode.DoctorId = dbo.tblDoctor.DoctorId
+WHERE        (dbo.tblEpisode.Title LIKE '@Inital%')
+ORDER BY dbo.tblEpisode.EpisodeDate
+
+
+SET @Inital = 'H';
+SELECT * FROM vwvwEpsiodesByFirstLetterVariable
+
+USE DoctorWho;
+
+CREATE VIEW vwSeriesOne AS
+SELECT Title, SeriesNumber, EpisodeNumber FROM tblEpisode
+WHERE SeriesNumber = 1;
+
+SELECT * FROM vwSeriesOne;
+
+USE HistoricalEvents;
+GO
+
+CREATE VIEW vwEventsByCountry AS
+SELECT C.CountryName, COUNT(E.EventID) AS EventNumber FROM tblCountry C
+INNER JOIN tblEvent E ON E.CountryId = C.CountryId 
+WHERE YEAR(E.EventDate) > 1990
+GROUP BY C.CountryName 
+HAVING COUNT(E.EventID) > 4;
+
+Select * FROM vwEventsByCountry;
+
+Alter VIEW vwEventsByCountry AS
+SELECT C.CountryName, COUNT(E.EventID) AS EventNumber FROM tblCountry C
+INNER JOIN tblEvent E ON E.CountryId = C.CountryId 
+WHERE YEAR(E.EventDate) > 1990
+GROUP BY C.CountryName 
+HAVING COUNT(E.EventID) > 2;
+
+Select * FROM vwEventsByCountry;
+
+USE DoctorWho;
+
+CREATE VIEW vwEpisodeCompanion AS
+SELECT E.EpisodeID, E.title FROM tblEpisode E
+INNER JOIN tblEpisodeCompanion EC ON E.EpisodeId = EC.EpisodeId 
+GROUP BY E.EpisodeID, E.title
+HAVING COUNT(EC.EpisodeCompanionId) = 1;
+
+CREATE VIEW vwEpisodeEnemy AS
+SELECT E.EpisodeID, E.title FROM tblEpisode E
+INNER JOIN tblEpisodeEnemy EE ON E.EpisodeId = EE.EpisodeId 
+GROUP BY E.EpisodeID, E.title
+HAVING COUNT(EE.EpisodeEnemyId) = 1;
+
+CREATE VIEW vwEpisodeSummary AS
+SELECT EpisodeID, title FROM tblEpisode 
+WHERE EpisodeID NOT IN (
+SELECT EpisodeID from vwEpisodeEnemy)
+AND EpisodeID NOT IN (
+SELECT EpisodeID from vwEpisodeCompanion);
+
+SELECT * FROM vwEpisodeSummary;
+
+--UNION AND EXCEPT
+SELECT EpisodeID, title FROM tblEpisode 
+EXCEPT (
+SELECT * FROM vwEpisodeEnemy
+UNION 
+SELECT * FROM vwEpisodeCompanion);
+
+
+
+
+
+
+
